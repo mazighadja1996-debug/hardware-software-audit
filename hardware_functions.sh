@@ -1,0 +1,164 @@
+#!/bin/bash
+
+
+#the hardware analysis:
+
+CPU_fun() {
+
+echo "do you want to check the architecture of the CPU:[y/n]"
+read an1
+if [[ "$an1" == "y" ]]; then	
+	CPU_archi=$(lscpu | awk 'NR == 1 {print $2}')
+	echo "$CPU_archi"
+fi 
+
+echo "do yo want ot check the model name:[y/n]"
+read an2
+if [[ "$an2" == "y" ]]; then
+	CPU_name=$(lscpu | awk 'NR == 8,13 {print}')
+	echo "$CPU_name"
+fi
+
+echo "do you want the full information about the CPU:[y/n]" 
+read an3
+if [[ "$an3" == "y" ]]; then
+	CPU_data=$(cat /proc/cpuinfo)
+	echo "CPU_data"
+fi
+}
+
+MEM_fun(){
+
+echo "do you want to chack the total memory:[y/n]"
+read an1
+if [[ an1 == "y" ]]; then
+	mem_total=$(cat /proc/meminfo | awk 'NR == 1 {print}')
+	echo "$mem_total"
+fi
+echo "do you want to see the state of the memory:[y/n]"
+read an2
+if [[ "an2" == "y" ]]; then
+	free_mem=$(cat /proc/meminfo | awk 'NR == 2 {print}')
+	avai_mem=$(cat /proc/meminfo | awk 'NR == 3 {print}')
+echo -e "the free memory size is: $free_mem \n\tthis one includes the RAMonly\nthe available memory size is: $avai_mem \n\t this one includes the RAM the caches and the buffers"
+
+echo "do you want to check the full report about the memory:[y/n]"
+read an3
+if [[ "$an3" == "y" ]]; then
+	MEM_data=$(cat /proc/meminfo)
+	echo "$MEM_data"
+fi
+
+}
+
+STORAGE_fun(){
+
+STORAGE_data=$(df -h)
+echo "if yo wish to check a directory's content and the space storage enter the name here:"
+read $dir
+if [[ -z $dir ]]; then
+	echo "you may choose another function"
+else
+	echo "select which part you want to check in the device"
+	read DIR
+	echo "du -h $DIR"
+fi
+
+}
+
+blocks_fun(){
+
+I_Odevices=$(iostat | awk '{print}')
+NETWORK_data=$(ip -s addr show | awk '{print}')
+USB_data=$(lsusb)
+CPI_data=$(lspci) #the pci is for the bus between the devices and the motherboard
+BLOCKS_data=$(lsblk) #the blocks are for the devices that are on the motherboard
+MOUNT_data=$(cat /proc/mounts) # for the mounted devices
+op=( "I/O devices" "network devices" "CPI state" "USB ports" "blocks" "mounted devices" "Quit" )
+select op in "${op[@]}"
+do 
+	case $op in 
+		"I/O devices")
+			echo "$I_Odevices"
+			;;
+		"network devices")
+			echo "$NETWORK_data"
+			;;
+		"PCI state")
+			echo "$PCI_data"
+			;;
+		"USB port")
+			echo "$USB_data"
+			;;
+		"blocks")
+			echo "$BLOCKS_data"
+			;;
+		"mounted devices")
+			echo "$MOUNT_data"
+			;;
+		"Quit")
+			break
+			;;
+		*)
+			echo "please select one of the options"
+	esac
+done
+
+}
+
+address_fun(){
+
+echo "please select which interface you want to check its IP and MAC"
+array=()
+for intf in $(ifconfig | cut -d" " -f1 | tr ":" " " | awk NF)
+do 
+	if [[ "$intf" != "lo" ]]; then
+		array+=("$intf")
+	fi
+done
+
+for i in "${array[@]}"
+do 
+	echo "$i"
+done
+
+read int
+IP=$(ip address show $int | awk '{print $2}' | sed -n '3p')
+MAC=$(ip address show $int | awk '{print $2}' | sed -n '2p')
+echo "the IP address is $IP and the MAC address is $MAC"
+
+}
+
+partial_report(){
+
+echo -e "====================================================\n\tshort reprot about the system hardware\t\n====================================================\n\n\n1- about the CPU here are the most important characteristics:\n$(lscpu | head -n15 | awk '{print}')\n\n2- the most important inforamtion about the memory:\n$(lsmem | awk '{print}')\n\n3- the most important information about the storage:\n$(df -h | awk '{print}')\n\n4- information about the input output devices:$I_Odevices\n\n5- information about the network devices:\n$NETWORK_data\n\n6-the address of the main netwok interface:\nthe IP address is $IP\nthe MAC address is $MAC\n\nthe file was edited at $(date +%d)/$(date +%m)/$(date +%Y) at the time $(date +%H):$(date +%M) by the user $(whoami)" > ~/partial_report.pdf
+
+}
+
+full_report(){
+
+echo -e "===================================================\n\tfull report about the system hradware\t\n=======================================================\n\n\n1- the device CPU full information:" > ~/full_report.pdf
+$CPU_data >> full_report.pdf
+echo -e "2- the device memory full information:" >> ~/full_report.pdf
+$MEM_data >> full_report.pdf
+echo -e "3- the device storage full information:" >> ~/full_report.pdf
+$STORAGE_data >> full_report.pdf
+echo -e "4- the device's input/output devices full information:" >> ~/fullreport.pdf
+$I_Odevice >> ~/full_report.pdf
+echo "5- the device's network devices full report:" >> ~/full_report.pdf
+$NEWORK_data >> ~/full_report.pdf
+echo "6- the device's USB ports' full report:" >> ~/full_report.pdf
+$USB_data >> ~/full_report.pdf
+echo "7- the device's CPI information:" >> ~/full_report.pdf
+$CPI_data >> ~/full_report.pdf
+echo "8- the device's blocks information:" >> ~/full_report.pdf
+$BLOCKS_data >> ~/full_report.pdf
+echo "9- the device's mounted devices information:" >> ~/full_report.pdf
+$MOUNT_data >> ~/full_report.pdf
+echo "10- the device's IP and MAC address:" >> ~/full_report.pdf
+ip address show eth0 | awk '{print $2}' | sed -n '3p' >> ~/full_report.pdf
+ip address show eth0 | awk '{print $2}' | sed -n '2p' >> ~/full_report.pdf
+
+echo "the report was generated by the user $(whoami) at the date $(date +%d)/$(date + %m)/$(date + %Y) at the time $(date + %H):$(date + %M)" >> ~/full_report.pdf
+
+}
