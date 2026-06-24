@@ -1,24 +1,24 @@
-# Edit this file to introduce tasks to be run by cron.
-# 
-# Each task to run has to be defined through a single line
-# indicating with different fields when the task will be run
-# and what command to run for the task
-# 
-# To define the time you can provide concrete values for
-# minute (m), hour (h), day of month (dom), month (mon),
-# and day of week (dow) or use '*' in these fields (for 'any').
-# 
-# Notice that tasks will be started based on the cron's system
-# daemon's notion of time and timezones.
-# 
-# Output of the crontab jobs (including errors) is sent through
-# email to the user the crontab file belongs to (unless redirected).
-# 
-# For example, you can run a backup of all your user accounts
-# at 5 a.m every week with:
-# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
-# 
-# For more information see the manual pages of crontab(5) and cron(8)
-# 
-# m h  dom mon dow   command
-0 4 * * * ./OS_Project/main_menu.sh
+#!/bin/bash
+
+# Configuration
+LOG_FILE="/var/log/nscs_automation.log"
+# نعيطو لسكربت الـ Remote اللي خدمناه (هو اللي فيه الـ SSH والـ Sync والـ Alerts)
+SCRIPT_PATH="$(pwd)/remote_monitor.sh"
+
+log_event() {
+	
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+# (Handle Failures)
+if [ -f "$SCRIPT_PATH" ]; then
+    chmod +x "$SCRIPT_PATH"
+    if "$SCRIPT_PATH"; then
+        log_event "SUCCESS: Automated sync and monitoring completed."
+    else
+        log_event "FAILURE: Remote monitoring script exited with an error."
+    fi
+else
+    log_event "CRITICAL: Script not found at $SCRIPT_PATH"
+    exit 1
+fi
