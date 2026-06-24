@@ -1,44 +1,51 @@
 #!/bin/bash
 
+yellow='\033[1;32m'
+red='\033[1;31m'
+cyan='\033[1;36m'
+yellow='\033[1;33m'
+
 ssmtp_conf_fun(){
-	echo "please enter your email"
-	read email_sender
-	echo " the default security protocl is TLS if you are using SSL plese enter 1"
-	read prt
-	if [ "$prt" == "1" ]; then
-	       port="465"
-	       lline="userSTARTSSL=yes"
-        else
-		port="587"
-		lline="userSTARTTLS=yes"
-	fi
-	echo "please enter your passeword"
-	read -s password
+    read -p "the default security protocol is TLS if you are using SSL please enter 1" prt
+    if [ "$prt" == "1" ]; then
+           port="465"
+           Usestarttls="NO"
+    else
+        port="587"
+        Use_starttls="YES"
+    fi
+    echo "please enter your password"
+    read -s password
 
+  echo -e "root=$sender\nmailhub=ssmtp.gmail:$port\nAuthUser=$sender\nAuthPass=$password\nUserSTARTTLS=$use_starttls\nUseTLS=YES"  > /tmp/ssmtp.conf
 
-	echo -e "root=$email_sender\nmailhub=smtp.gmail.com:$port\nAuthUser=$email_sender\nAuthPass=$password\n$lline">/etc/ssmtp/ssmtp.conf
+    sudo mv /tmp/ssmtp.conf /etc/ssmtp/ssmtp.conf
 }
 
 write_email_fun(){
-	if [ -f ~/full_report.pdf ]; then
-		file=full_report.pdf
-	else
-		file=partial_report.pdf
-	fi
-
-	echo "please enter the receiver's gmail"
-	read receiver
-	echo "please enter the sender's gmail"
-	read sender
-	echo -e "To:$receiver\nFrom:$sender\nCc:$receiver\nSubject:the report\n$(cat $file)" > email.sh
-
-echo -e "before sending the email please turn on the option of letting less secure apps contact you so that you' ll be able to receive the email\nplease press any key once you have done the settings"
-while [ true ]
-do
-read answer -t 3 -n 1
-if [ #? != 0 ]; then 
-	ssmpt_conf_fun()
-	write_email_fun()
-else
-	echo "please configure the settings"
-fi
+    read -p "${yellow}please select whihc report you wish to send" file
+    if [ ! -f file ]; then
+      echo "${red}the file does not exist"
+      exit 1
+    fi
+  
+    read -p "${cyan}please enter the receiver's gmail" receiver
+    read -p "${cyan}please enter the sender's gmail" sender
+    
+    echo -e "\n${yellow}Important: Please use a Google 'App Password' instead of your regular password."
+    read -n 1 -s -p -r "Press any key once you have configured your settings...  "
+    
+    ssmtp_conf_fun
+    
+    echo "Full Report of the device" | mailx /
+    -r "$sender" /
+    -s "report about the user's device" /
+    -a "$file" /
+    $receiver
+    
+    if [ $? -eq 0 ]; then
+        echo "${green}Email sent successfully!"
+    else
+        echo "${red}Failed to send email. Please check your configuration."
+    fi
+}
